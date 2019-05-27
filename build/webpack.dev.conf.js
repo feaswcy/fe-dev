@@ -1,58 +1,70 @@
-var version = require('../package.json').version
-var webpack = require('webpack')
-var merge = require('webpack-merge')
-var utils = require('./utils')
-var baseWebpackConfig = require('./webpack.base.conf')
-var HtmlWebpackPlugin = require('html-webpack-plugin')
-var FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
+const path = require('path')
+const baseConf = require('./webpack.base.conf')
+const webpack = require('webpack')
+const merge = require('webpack-merge')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 
-var entry = {
-  app: './src/index.js'
+function resolveDir(dir){
+  return path.join(__dirname, dir)
 }
-// add hot-reload related smsCode to entry chunks
-Object.keys(entry).forEach(function (name) {
-  entry[name] = ['./build/dev-client'].concat(entry[name])
-})
 
-module.exports = merge(baseWebpackConfig, {
-  entry: entry,
-  module: {
-    rules: utils.styleLoaders({ sourceMap: true })
+const devConf = merge(baseConf, {
+  module: {  // dev模式下，告诉webpack这样处理css或者css预处理文件
+    rules: [{
+      test: /\.css$/,
+      use: [ // sourceMap有很多bug，所以都不打开
+        { loader: 'css-loader', options: { sourceMap: false } },
+        { loader: 'postcss-loader', options: { sourceMap: false } }
+      ]},
+      {
+        test: /\.stylus$/,
+        use: [
+          { loader: 'css-loader', options: { sourceMap: false } },
+          { loader: 'postcss-loader', options: { sourceMap: false } },
+          {
+            loader: 'stylus-loader',
+            options: { 'resolve url': true, sourceMap: false }
+          }
+        ]
+      }
+    ]
   },
-  // eval-source-map is faster for development
-  devtool: '#cheap-module-eval-source-map',
+  // 开发模式下，sourceMap的类型会影响到构建速度，https://webpack.docschina.org/configuration/devtool/#src/components/Sidebar/Sidebar.jsx
+  devtool: 'eval-source-map', 
+
+  // 配置dev-server
   devServer: {
-    clientLogLevel: 'warning',
-    historyApiFallback: true,
-    hot: true,
+    contentBase: resolveDir('../'),
     compress: true,
-    host: 'localhost',
-    port: '3000',
+    hot: true,
+    // color: true,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1'
+    ],
+    host: '127.0.0.1',
+    port: '8080',
     open: true,
-    overlay: {
-      warnings: false,
-      errors: true
-    },
     publicPath: '/',
     quiet: true, // necessary for FriendlyErrorsPlugin
-    watchOptions: {
-      poll: false,
-    }
+    historyApiFallback: true,
   },
-  plugins: [
+  plugins:[
     new webpack.DefinePlugin({
-      'process.env': 'development',
-      __VERSION__: JSON.stringify(version)
+      'process.env': 'development'
     }),
-    // https://github.com/glenjamin/webpack-hot-middleware#installation--usage
+    // 告诉webpack开发中启用热更新
     new webpack.HotModuleReplacementPlugin(),
+    // 在开启HMR时，告诉webpack展示出不同module的路径
+    new webpack.NamedModulesPlugin(),
+    // 告诉webpack出现错误时不要退出，并且跳过输出阶段
     new webpack.NoEmitOnErrorsPlugin(),
-    // https://github.com/ampedandwired/html-webpack-plugin
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: './index.html',
+      template: 'index.html',
       inject: true
     }),
-    new FriendlyErrorsPlugin()
   ]
 })
+
+module.exports = devConf
