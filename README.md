@@ -17,42 +17,92 @@ API: console.log
   
 在webpack的配置中，一般将和文件loader、通用plugin相关的配置单独抽离出来，作为base conf，另外将和代码环境相关的抽离成dev.conf 或者build.conf，如果base conf中需要通过代码环境来配置一些路径，则使用nodejs的全局变量process.NODE_ENV来定义。
 
+1) 运行npm i webpack webpack-dev-server html-loader css-loader babel-loader --save-dev
+安装完成后，分别添加npm script，让脚本可以通过npm 跑起来：
 
-LoaderOptionsPlugin 提示loader api不合法，这个是webpack1 到webpack2迁移过程的一个兼容插件
+```js
+// package.json
+"scripts": {
+    "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js --mode development",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config build/webpack.build.conf.js"
+  },
+```
+注意一下，dev的时候是可以直接使用webpack-dev-server来启动的，这里的三个参数，在webpack-dev-server里分别有解释，一般至少需要这三个参数，最后一个--mode，也可以添加到配置文件中来指定。
+
+2）创建webpack.base.conf.js，配置webpack基础配置
+配置entry、output、css-loader等，这部分只能参考文档一步步的配置。
++ entry: 入口，告诉webpack从这个文件开始分析依赖，注意这里如果写相对路径的话，将会针对于webpack当前工作的context进行查找，指定了context为工程目录，就不应该再向上查找了。
+
+3) 创建webpack.dev.conf.js，主要配置开发server，以及对样式资源的特殊处理
+
+4) 创建webpack.build.conf.js，主要配置build配置，build配置为生产环境配置，需要配置与性能优化相关的插件
+
+5）边跑demo变debug
+跑demo的过程踩了很多坑，不过大部分是因为配置项没有按照要求来写（这里吐槽一下，各种插件的文档质量真的参差不齐。。）
 
 
 
+下面记录踩坑过程，也许能帮到你：
+`CASE1：` LoaderOptionsPlugin 提示loader api不合法，并提示了一个mode的配置，详细报错信息如下：
 
-直接安装webpack-dev-server之后，并不能直接启动，报错提示webpack-cli，于是安装
+```base
+configuration has an unknown property 'mode'. These properties are valid:...
+```
 
-安装之后运行，发现报错`configuration has an unknown property 'mode'. These properties are valid:`,仔细阅读下面的提示，是跟loader 的option api相关，看了一下配置，还没有添加loader，添加了loader相关的处理后，仍然报错，查看了一下stackoverflow，感觉有可能是webpack和webpack-dev-server的版本相关问题，于是全局删除了webpack、webpack-dev-server，还是不行，rm掉node modules，从新安装，仍然报错。。
+由于webpack的文档实在太长并且细节很多，因此，刚开始我并没有意识到这个问题是webpack的不同版本导致的。
+于是从源码中直接debug，在node_modules中找到webpack-dev-server，发现执行`webpack(config)`时，这里的config 已经被添加了一个 `mode: 'development'`属性！ 顺着这个思路，发现在传入config到webpack之前，webpack-dev-server会合并一个默认配置，在这里添加了一个default mode：
 
-于是从源码找问题，发现webpack-dev-server自动会给config加一个mode 配置，mode配置属于webpack 4的，于是感觉webpack 的版本不对，强制npm install v4版本已上的webpack，终于ok
+```js
+// node_modules/webpack-dev-server/lib/utils/createConfig.js
+firstWpOpt.mode = defaultTo(firstWpOpt.mode, 'development');
 
-接下来，启动dev-server，发现提示validate error，并指出不要添加多余的配置（但是没有指出哪些配置是多余的。。），还是人肉翻源码，找到了校验的地方，检验的是根据一个schme和传入的option作比较，发现传入的不对，就抛出了多余配置的错误。。从新找到webpack dev 的config，发现有一个color配置，在webpack文档中是这么写的
-`devServer.color - 只用于命令行工具(CLI) `
+```
 
-只能用于命令行工具。。
+这样说来，应该是没有问题的，不过既然webpack 抛出了合格错误，说明这个config在当前的程序中没有被识别，于是翻出文档，发现当前自己使用的webpack是全局安装的3.12.1的版本，mode是4.x的属性，于是卸载全局并重装4.x的webpack，case 解决了
 
+`CASE2`  启动dev-server，发现提示validate error，并指出不要添加多余的配置（但是没有指出哪些配置是多余的。。）
 
-设置context 之后，entry和dist如果写相对路径，那么久相对于这个context的路径，并不是相对于__dirname
+还是人肉翻源码，找到了webpack校验option的地方：
 
-extract-text-webpack-plugin 在webpack 4中无法使用，webpack官方推荐mini-css-extract-plugin
+```js
+// node_modules/schema-utils/src/validateOptions.js
+ if (typeof schema === 'string') {
+    schema = fs.readFileSync(path.resolve(schema), 'utf8');
+    schema = JSON.parse(schema);
+  }
+  if (!ajv.validate(schema, options)) {
+    throw new ValidationError(ajv.errors, name);
+  }
+```
 
-### 配置css-loader
+检验的是根据一个schme和传入的option作比较，发现传入的不对，就抛出了多余配置的错误。。从新找到webpack dev 的config，发现有一个color配置，在webpack文档中一行小字 devServer.color 只能适用于命令行工具(CLI) 
+
+`CASE3` extract-text-webpack-plugin 在webpack 4中无法使用，webpack官方推荐mini-css-extract-plugin
+
+### STEP2：配置css-loader
 css-loader相对复杂，因此单独拿出来分析一下，由于存在各种css预处理器，为避免选择纠结症，这里将会适配所有的css预处理语言，因为是在本机运行，编译过后都是css代码，因此对性能的影响可以忽略不计
 
-主要有三种loader： sasss-
+主要有四种loader： sass-loader、less-loader、stylus-loader、postCss-loader：
++ less-loader: 兼容css的语法，在css的语法上更进一层，需要写{}
++ sass-loader: sass规范更加严格一些，不需要写{}，并且支持函数，但是需要ruby环境编译
++ stylus-loader: 功能更强大，并且语法比较简洁，对团队要求较高，并且需要良好的规范或约定
++ postCss-loader: postCss是css的一种编译语言，类似prefix的前缀需要使用postCss来添加
 
-## STEP2：babel
+由于css预处理器的种类繁多，因此，配置loader时需要注意一下先后顺序:
+
+
+## STEP3：babel的配置
   babel，ES6是javascript语言的未来（另一个可能是typescript，但是就目前而言typescript在大型项目中优势会比较明显，相反es6更加流行与一般的前端工程化项目）
-+ 
+  
 
-
-配置loader 后 run build，提示需要@babel/core，于是npm i
+配置loader 后 run build，提示需要@babel/core，于是npm i @babel/core
 
 
 ## 总结
-+ express middleware
-+ webpack dev server （推荐）
-+ vue-cli
++ 早期的express middleware来做热更新或者开发模式，已经逐渐淘汰为使用webpack-dev-server
++ 配置期间遇到问题，明确含义后可以人肉debug源码，在对比文档找出差异和错误，最后纠正。
+
+
+## 参考资料
+1. 再谈 CSS 预处理器，[https://efe.baidu.com/blog/revisiting-css-preprocessors/](https://efe.baidu.com/blog/revisiting-css-preprocessors/)
