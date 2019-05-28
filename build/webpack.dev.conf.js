@@ -14,13 +14,13 @@ const devConf = merge(baseConf, {
       test: /\.css$/,
       use: [ // sourceMap有很多bug，所以都不打开
         { loader: 'css-loader', options: { sourceMap: false } },
-        { loader: 'postcss-loader', options: { sourceMap: false } }
+        // { loader: 'postcss-loader', options: { sourceMap: false } }
       ]},
       {
         test: /\.stylus$/,
         use: [
           { loader: 'css-loader', options: { sourceMap: false } },
-          { loader: 'postcss-loader', options: { sourceMap: false } },
+          // { loader: 'postcss-loader', options: { sourceMap: false } },
           {
             loader: 'stylus-loader',
             options: { 'resolve url': true, sourceMap: false }
@@ -46,7 +46,7 @@ const devConf = merge(baseConf, {
     port: '8080',
     open: true,
     publicPath: '/',
-    quiet: true, // necessary for FriendlyErrorsPlugin
+    quiet: false, // necessary for FriendlyErrorsPlugin
     historyApiFallback: true,
   },
   plugins:[

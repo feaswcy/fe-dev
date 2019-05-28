@@ -1,9 +1,8 @@
-import module1 from './module'
+import module1 from './module/module'
 
+const module = module1.init()
+document.body.appendChild(module)
 
-console.log('module1', module1)
-alert(11)
-document.body.appendChild(module1())
-
+console.log(333)
 
 

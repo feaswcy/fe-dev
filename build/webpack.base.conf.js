@@ -14,7 +14,7 @@ const srcAndExample = [
 module.exports = {
   context: path.resolve(__dirname, '../'),
   entry: {
-    app: '../src/main',
+    app: './src/main',
   },
   output: {
     path: resolve('dist'),
@@ -22,7 +22,7 @@ module.exports = {
       ? 'static.baidu.com/assets/' // 静态资源线上路径
       : '/',
     filename: '[name].js',
-    chunkFilename: '[name].js'
+    chunkFilename: '[name].[chunk].js'
   },
   resolve: {
     extensions: ['.js', '.json'], // 让webpack解析这些文件时，不需要写后缀，如require('../main')

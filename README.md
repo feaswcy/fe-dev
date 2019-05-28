@@ -7,6 +7,7 @@
 
 ## 开始之前
 使用工具： vscode debugger
+API: console.log
 
 ### STEP1： webpack篇
 工程化的核心之一就是分模块管理，webpack应运而生，使用webpack搭建前端环境需要安装的最基础npm包有：
@@ -34,13 +35,21 @@ LoaderOptionsPlugin 提示loader api不合法，这个是webpack1 到webpack2迁
 只能用于命令行工具。。
 
 
+设置context 之后，entry和dist如果写相对路径，那么久相对于这个context的路径，并不是相对于__dirname
 
+extract-text-webpack-plugin 在webpack 4中无法使用，webpack官方推荐mini-css-extract-plugin
 
+### 配置css-loader
+css-loader相对复杂，因此单独拿出来分析一下，由于存在各种css预处理器，为避免选择纠结症，这里将会适配所有的css预处理语言，因为是在本机运行，编译过后都是css代码，因此对性能的影响可以忽略不计
+
+主要有三种loader： sasss-
 
 ## STEP2：babel
   babel，ES6是javascript语言的未来（另一个可能是typescript，但是就目前而言typescript在大型项目中优势会比较明显，相反es6更加流行与一般的前端工程化项目）
 + 
 
+
+配置loader 后 run build，提示需要@babel/core，于是npm i
 
 
 ## 总结

@@ -7,10 +7,11 @@ const webpack = require('webpack')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const CompressionWebpackPlugin = require('compression-webpack-plugin')
 const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
-const ExtractTextPlugin = require('extract-text-webpack-plugin')
+// const ExtractTextPlugin = require('extract-text-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 
 // const config = {
@@ -38,12 +39,32 @@ function resolveDir(dir){
 }
 
 const webpackConfig = merge(baseConf, {
+  mode: 'production',
   module: {  // 告诉webpack把 css提取出来放到一个单独的文件
     // rules: utils.styleLoaders({
     //   sourceMap: config.build.productionSourceMap,
     //   extract: true,
     //   usePostCSS: true
     // })
+    rules: [{
+      test: /\.css$/,
+      use: [ // sourceMap有很多bug，所以都不打开
+        { loader: 'css-loader', options: { sourceMap: false } },
+        // { loader: 'postcss-loader', options: { sourceMap: false } }
+      ]
+    },
+    {
+      test: /\.stylus$/,
+      use: [
+        { loader: 'css-loader', options: { sourceMap: false } },
+        // { loader: 'postcss-loader', options: { sourceMap: false } },
+        {
+          loader: 'stylus-loader',
+          options: { 'resolve url': true, sourceMap: false }
+        }
+      ]
+    }
+    ]
   },
   devtool: false, // 告诉webpack在devtool展示相关debug信息
   optimization:{
@@ -53,21 +74,22 @@ const webpackConfig = merge(baseConf, {
       minChunks: 1,
       maxAsyncRequests: 5,
       maxInitialRequests: 3,
-      vendors: {
-        test: /[\\/]node_modules[\\/]/,
-        priority: -10
-      },
-      manifest: {
-        name: 'manifest',
-        minChunks: Infinity
-      },
-      manifest: {
-        name: 'manifest',
-        async: 'vendor-async',
-        children: true,
-        minChunks: 3
-      },
-
+      cacheGroups:{
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10
+        },
+        manifest: {
+          name: 'manifest',
+          minChunks: Infinity
+        },
+        // manifest: {
+        //   name: 'manifest',
+        //   async: 'vendor-async',
+        //   children: true,
+        //   minChunks: 3
+        // },
+      }
     }
   },
   plugins: [
@@ -77,7 +99,7 @@ const webpackConfig = merge(baseConf, {
     new UglifyJsPlugin({
       uglifyOptions: {
         compress: {
-          warnings: false,
+          // warnings: false,
           drop_console: true,
           drop_debugger: true
         }
@@ -86,13 +108,21 @@ const webpackConfig = merge(baseConf, {
       parallel: true
     }),
     // extract css into its own file
-    new ExtractTextPlugin({
-      filename: resolveDir('dist/css/[name].[contenthash].css'),
-      // set the following option to `true` if you want to extract CSS from
-      // codesplit chunks into this main css file as well.
-      // This will result in *all* of your app's CSS being loaded upfront.
+    // new ExtractTextPlugin({
+    //   filename: resolveDir('dist/css/[name].[contenthash].css'),
+    //   // set the following option to `true` if you want to extract CSS from
+    //   // codesplit chunks into this main css file as well.
+    //   // This will result in *all* of your app's CSS being loaded upfront.
+    //   allChunks: false,
+    // }),
+    new MiniCssExtractPlugin({
+      // Options similar to the same options in webpackOptions.output
+      // both options are optional
+      filename: 'dist/css/[name].[contenthash].css',
+      chunkFilename: '[id].[hash].css',
       allChunks: false,
     }),
+
     // Compress extracted CSS. We are using this plugin so that possible
     // duplicated CSS from different components can be deduped.
     new OptimizeCSSPlugin({
@@ -102,7 +132,7 @@ const webpackConfig = merge(baseConf, {
     // you can customize output by editing /index.html
     // see https://github.com/ampedandwired/html-webpack-plugin
     new HtmlWebpackPlugin({
-      filename: 'index.html',
+      filename: 'index.html', // 告诉HtmlWebpackPlugin 把引用script的html字符串写入这个文件
       template: 'index.html',
       inject: true,
       minify: {
@@ -122,16 +152,13 @@ const webpackConfig = merge(baseConf, {
     // This instance extracts shared chunks from code splitted chunks and bundles them
     // in a separate chunk, similar to the vendor chunk
     // see: https://webpack.js.org/plugins/commons-chunk-plugin/#extra-async-commons-chunk
-    new BundleAnalyzerPlugin(),
+    // new BundleAnalyzerPlugin(),
     new CompressionWebpackPlugin({
-      asset: '[path].gz[query]',
-      algorithm: 'gzip',
+      filename: '[path].gz[query]',  // 注意之前是asset属性，现在是filename
       test: new RegExp(
-        '\\.(' +
-        'js|css' +
-        ')$'
+        '\\.(js|css)$'
       ),
-      threshold: 10240,
+      threshold: 10240, // 只有超过10140字节的才会被压缩
       minRatio: 0.8
     })
   ]

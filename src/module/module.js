@@ -1,10 +1,10 @@
 import tpl from './module.html'
-import render from {common}
+// import render from {common}
 import './module.stylus'
 
 export default{
   init(){
-    this.dom  = render(tpl)
+    this.dom  = tpl
 
     return this.dom
   }
