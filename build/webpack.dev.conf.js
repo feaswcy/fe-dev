@@ -46,7 +46,7 @@ const devConf = merge(baseConf, {
     port: '8080',
     open: true,
     publicPath: '/',
-    quiet: false, // necessary for FriendlyErrorsPlugin
+    quiet: true, // necessary for FriendlyErrorsPlugin
     historyApiFallback: true,
   },
   plugins:[

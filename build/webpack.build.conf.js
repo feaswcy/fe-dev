@@ -1,45 +1,23 @@
 
 const merge = require('webpack-merge')
 const baseConf = require('./webpack.base.conf')
-const path =require('path')
 const webpack = require('webpack')
 
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const CompressionWebpackPlugin = require('compression-webpack-plugin')
 const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
-// const ExtractTextPlugin = require('extract-text-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin')
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
-
-// const config = {
-//   env: require('./prod.env'),
-
-//   // Paths
-//   /* NEED_MODIFY: 入口 html 文件 path */
-//   index: path.resolve(__dirname, '../dist/index.html'),
-//   assetsRoot: path.resolve(__dirname, '../dist'),
-//   assetsSubDirectory: projectName,
-//   /* NEED_MODIFY: 静态资源前缀 */
-//   assetsPublicPath: '//static.udache.com/common/',
-
-//   // Source Maps
-//   productionSourceMap: false,
-//   devtool: '#source-map',
-
-//   productionGzip: false,
-//   productionGzipExtensions: ['js', 'css'],
-//   bundleAnalyzerReport: process.env.npm_config_report
-// }
-
-function resolveDir(dir){
-  return path.join(__dirname, '../', dir)
-}
+// const ExtractTextPlugin = require('extract-text-webpack-plugin')
+// const UglifyJsPlugin = require('uglifyjs-webpack-plugin') issue:https://github.com/webpack/webpack/issues/5858
 
 const webpackConfig = merge(baseConf, {
   mode: 'production',
+  output:{
+    publicPath: '/dist/'
+  },
   module: {  // 告诉webpack把 css提取出来放到一个单独的文件
     // rules: utils.styleLoaders({
     //   sourceMap: config.build.productionSourceMap,
@@ -68,6 +46,19 @@ const webpackConfig = merge(baseConf, {
   },
   devtool: false, // 告诉webpack在devtool展示相关debug信息
   optimization:{
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          ecma: 6,
+          compress: true,
+          output: {
+            comments: false,
+            beautify: false
+          }
+        }
+      })
+    ],
     splitChunks:{
       minSize: 30000,
       maxSize: 0,
@@ -93,21 +84,25 @@ const webpackConfig = merge(baseConf, {
     }
   },
   plugins: [
-    new webpack.DefinePlugin({
-      'process.env': 'production'
-    }),
-    new UglifyJsPlugin({
-      uglifyOptions: {
-        compress: {
-          // warnings: false,
-          drop_console: true,
-          drop_debugger: true
-        }
-      },
-      sourceMap: false,
-      parallel: true
-    }),
-    // extract css into its own file
+    // webpack 4 默认配置，不在需要
+
+    // new webpack.DefinePlugin({
+    //   'process.env': 'production'
+    // }),
+
+    // new UglifyJsPlugin({
+    //   uglifyOptions: {
+    //     compress: {
+    //       // warnings: false,
+    //       drop_console: true,
+    //       drop_debugger: true
+    //     }
+    //   },
+    //   sourceMap: false,
+    //   parallel: true
+    // }),
+
+    // ExtractTextPlugin 在webpack 4中已被 MiniCssExtractPlugin 取代
     // new ExtractTextPlugin({
     //   filename: resolveDir('dist/css/[name].[contenthash].css'),
     //   // set the following option to `true` if you want to extract CSS from
@@ -163,7 +158,5 @@ const webpackConfig = merge(baseConf, {
     })
   ]
 })
-
-
 
 module.exports = webpackConfig

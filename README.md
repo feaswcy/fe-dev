@@ -1,20 +1,16 @@
-
-
-## 开发环境
-如果使用开源社区的方案，以下三个会比较成熟
 ## 从0搭建了一个现代的前端开发环境
 不依赖任何框架，在文章的末尾，会额外提供vue或者react相关的配置，但这并不是这篇文章的重点。
 
 ## 开始之前
-使用工具： vscode debugger
+使用工具： vscode、vscode debugger
 API: console.log
 
-### STEP1： webpack篇
 工程化的核心之一就是分模块管理，webpack应运而生，使用webpack搭建前端环境需要安装的最基础npm包有：
 + webpack-dev-server， 用来启动开发环境，在webpack-dev-server还没有推出之前，一些早期的项目使用express并使用中间件的方式来实现开发模式，webpack-dev-server 集成了express中相似功能的代码，并通过命令行工具+ 配置的方式提供使用。
 + 各种loader，主要包括.js，.html, .css(或者css预处理语言stylus、less、sass等)，下面将一一介绍。
-+ 各种plugins：主要包括有 html-webpack-plugins,
-  
++ 各种plugins：主要包括有 html-webpack-plugins,UglifyJsPlugin, MiniCssExtractPlugin等，下面一一介绍
+
+### STEP1： webpack篇
 在webpack的配置中，一般将和文件loader、通用plugin相关的配置单独抽离出来，作为base conf，另外将和代码环境相关的抽离成dev.conf 或者build.conf，如果base conf中需要通过代码环境来配置一些路径，则使用nodejs的全局变量process.NODE_ENV来定义。
 
 1) 运行npm i webpack webpack-dev-server html-loader css-loader babel-loader --save-dev
@@ -93,11 +89,26 @@ css-loader相对复杂，因此单独拿出来分析一下，由于存在各种c
 
 
 ## STEP3：babel的配置
-  babel，ES6是javascript语言的未来（另一个可能是typescript，但是就目前而言typescript在大型项目中优势会比较明显，相反es6更加流行与一般的前端工程化项目）
+  babel，ES6是javascript语言的未来（另一个可能是typescript，但是就目前而言typescript在大型项目中优势会比较明显，相反es6更加流行于一般的前端工程化项目）
   
 
-配置loader 后 run build，提示需要@babel/core，于是npm i @babel/core
+配置loader 后 run build，提示需要@babel/core，于是npm i @babel/core, 新升级版本的babel遵循了`约定即配置`的思想，安装成功基本不需要额外的配置，项目就可以正常的run起来，但是如果你的项目有一些性能调优之类的问题，可能需要详细阅读babel的文档来获得帮助,这个属于具体site具体分析的问题，可以参考性能优化相关的方法论。
 
+
+
+
+## loader篇
+安装url-loader后报错依赖file-loader，file-loader 却没有自动安装，于是npm i file-loader
+
+html模板中包含图片的，使用html loader 的attrs combin，添加需要让html-loader处理的tag attr，可以处理引用图片路径问题。(https://webpack.docschina.org/loaders/html-loader/)
+
+遇到一个问题，在使用webpack的动态import时发现报错，原因是在babel转换js的阶段，已经识别了动态import，babel尝试转换这中语法，但是由于webpack原生支持使用import导入动态模块，因此这两者之前存在一个冲突。
+
+
+注意：**webpack本身支持原生的模板方法import 和 export**
+
+
+babel 7会尝试解析原来webpack 原生支持的dynamic 语法，导致dynamic import特性失效，如果你使用的是babel7，需要对这个进行单独的配置，配置方式是引入 `@babel/plugin-syntax-dynamic-import`
 
 ## 总结
 + 早期的express middleware来做热更新或者开发模式，已经逐渐淘汰为使用webpack-dev-server

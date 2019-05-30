@@ -14,7 +14,7 @@ const srcAndExample = [
 module.exports = {
   context: path.resolve(__dirname, '../'),
   entry: {
-    app: './src/main',
+    app: './src/main.js',
   },
   output: {
     path: resolve('dist'),
@@ -37,7 +37,7 @@ module.exports = {
         test: /\.html$/,
         loader:'html-loader',
         options:{
-          attrs: [':data-src']
+          attrs: [':data-src','img:src']
         }
       },
       {
@@ -48,6 +48,16 @@ module.exports = {
           resolve('test'),
           resolve('node_modules/webpack-dev-server/client')
         ],
+        options:{
+          plugins: [
+            '@babel/plugin-syntax-dynamic-import'
+          ]
+        }
+      },
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
       },
       {
         test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,
